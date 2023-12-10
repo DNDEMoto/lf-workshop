@@ -1,0 +1,25 @@
+target C {
+  // target property
+  // option related to executgion
+  timeout: 3 sec
+}
+reactor Counter {
+  timer t(0, 1 sec)
+  state count: int = 0  // new syntax
+  output out:int
+  reaction(t) -> out {=
+    SET(out, self->count);
+    self->count++;
+  =}
+}
+reactor Printer {
+  input in:int
+  reaction(in) {=
+    lf_print("hello_world %d",in->value);
+  =}
+}
+main reactor {
+  c = new Counter()
+  p = new Printer()
+  c.out->p.in
+}

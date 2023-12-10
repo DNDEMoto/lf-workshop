@@ -1,9 +1,9 @@
 bin/
 .DS_Store
-src-gen/*
-fed-gen/*
-build/
+src-gen
+fed-gen
+build
 include
 lib
-share/
-lingua-franca/
+share
+lingua-franca

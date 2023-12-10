@@ -1,0 +1,15 @@
+target C {
+  // target property
+  // option related to executgion
+  timeout: 3 sec
+}
+
+main reactor {
+  timer t(0, 1 sec)
+  state count: int = 0  // new syntax
+
+  reaction(t) {=
+    lf_print("hello_world %d",self->count);
+    self->count++;
+  =}
+}
