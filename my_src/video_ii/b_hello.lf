@@ -1,6 +1,6 @@
 target C{
     // target property
-    // option related to executgion
+    // option related to execution
     timeout: 3 sec
 }
 main reactor {
