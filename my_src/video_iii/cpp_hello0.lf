@@ -1,0 +1,7 @@
+target Cpp
+main reactor {
+    reaction(startup){=
+        reactor::log::Info() << "hello cpp world";
+    =}
+}
+

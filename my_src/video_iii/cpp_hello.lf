@@ -1,0 +1,59 @@
+target Cpp {
+    timeout: 3 sec
+}
+
+public preamble {=
+    template<class T>
+    struct HelloMsg {
+        T value;
+        std::string message;
+    };
+=}
+
+reactor Counter<T>(stride: T(1), period: time(1 sec)) {
+    state count: T(0);
+    timer t(0, period);
+    output out: T;
+    reaction(t) -> out {=
+        out.set(count);
+        inc();
+    =}
+    method inc() {=
+        count += stride;
+    =}
+}
+
+reactor Hello<T>(message: std::string("Hello")) {
+    input in: T;
+    output out: HelloMsg<T>;
+
+    reaction (in) -> out {=
+        auto msg = reactor::make_mutable_value<HelloMsg<T>>();
+        msg->value = *in.get();
+        //reactor::log::Info() << message << " !!!";
+        msg->message = message;
+        out.set(std::move(msg));
+
+        // alternative implicit creation:
+        //out.set(HelloMsg<T>(*in.get(), message));
+    =}
+}
+
+reactor Printer<T> {
+    input in: HelloMsg<T>;
+    reaction(in) {=
+        auto msg = in.get();
+        // msg->value = 42; // compile error
+        reactor::log::Info() << msg->message << " " << msg->value;
+    
+    =}
+}
+
+main reactor(stride: int(10), period: time(1 sec), message: std::string("Hello")) {
+    c = new Counter<int>(stride=stride, period=period);
+    // bug: message is not taken by hello, somehow!!!
+    h = new Hello<int>(message=message);
+    p = new Printer<int>();
+    c.out -> h.in;
+    h.out -> p.in;
+}
