@@ -43,6 +43,7 @@
 
     state count: int = 0
   
+    //1
     reaction(startup) -> prompt {=
       printf("***********************************************\n");
       printf("Watch for the prompt, then hit Return or Enter.\n");
@@ -57,7 +58,8 @@
       // lf_schedule (name of action, delay)
       lf_schedule(prompt, additional_time(0, self->max_time - self->min_time));
     =}
-  
+
+    //2
     reaction(prompt) -> out {=
       // just counting
       self->count++;
@@ -65,7 +67,8 @@
       fflush(stdout);
       lf_set(out, self->count);
     =}
-  
+
+    //3
     reaction(another) -> prompt {=
       // Schedule the next event. waiting sfor random time
       lf_schedule(prompt, additional_time(0, self->max_time - self->min_time));
