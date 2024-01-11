@@ -1,5 +1,5 @@
 {
-    "image": "ubuntu:latest",
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
     "hostRequirements": {
       "cpus": 1
     },
