@@ -10,10 +10,13 @@ reactor Counter(stride: int(1), period: time(1 sec)) {
     =}
 }
 
-reactor Adder(value: int(1)) {
+reactor Adder(value: int(1),delay: int(0)) {
     input in: int;
     output out: int;
     reaction (in) -> out {=
+        std::cout << " physical time1: " << get_physical_time() <<  std::endl;
+        sleep(delay); 
+        std::cout << " physical time2: " << get_physical_time() <<  std::endl;
         out.set(*in.get() + value);
         std::cout << " Logical time is " << get_logical_time() << " Microstep: " << get_microstep() <<std::endl;
     =}
@@ -31,8 +34,8 @@ reactor Printer {
 
 main reactor(stride: int(10), period: time(1 sec)) {
     c = new Counter(stride=stride, period=period);
-    a1 = new Adder(value=1);
-    a2 = new Adder(value=2);
+    a1 = new Adder(value=1, delay=0);
+    a2 = new Adder(value=2, delay=1);
     p = new Printer();
     c.out -> a1.in;
     c.out -> a2.in;
