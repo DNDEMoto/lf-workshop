@@ -1,0 +1,31 @@
+target C {
+    timeout: 5 sec,
+    coordination: decentralized
+  }
+  
+  import Count, Print from "FederatedCounter.lf"
+  
+  reactor PrintTimer extends Print {
+    timer t(0, 1 sec)
+  
+    reaction(t) {=
+      lf_print("Timer ticked at (%lld, %d).",
+          lf_time_logical_elapsed(), lf_tag().microstep
+      );
+    =}
+  }
+  
+  federated reactor {
+    c = new Count()
+    p = new PrintTimer()
+    c.out -> p.in after 10 msec
+  }
+/*
+https://www.lf-lang.org/docs/writing-reactors/distributed-execution/?target=c#decentralized-coordination
+
+In decentralized coordination, each federate and some reactions have a safe-to-process (STP) offset. When one federate communicates with another, it does so directly through a dedicated socket without going through the RTI. Moreover, it does not consult the RTI to advance logical time. Instead, it can advance its logical time to t when its physical clock matches or exceeds t + STP.
+
+
+In this example, as long as the messages from federate c arrive at federate p within 10 msec, all messages will be processed in tag order, as with an unfederated program.
+
+*/
