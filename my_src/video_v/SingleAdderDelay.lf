@@ -10,15 +10,15 @@ reactor Counter(stride: int(1), period: time(1 sec)) {
     =}
 }
 
-reactor Adder(value: int(1),delay: int(0)) {
+reactor Adder(value: int(1),delay: int(0), id: int(0)) {
     input in: int;
     output out: int;
     reaction (in) -> out {=
-        std::cout << " physical time1: " << get_physical_time() <<  std::endl;
+        std::cout << id <<":Physical time1: " << get_physical_time() <<  std::endl;
         sleep(delay); 
-        std::cout << " physical time2: " << get_physical_time() <<  std::endl;
+        std::cout << id << ":Physical time2: " << get_physical_time() <<  std::endl;
         out.set(*in.get() + value);
-        std::cout << " Logical time is " << get_logical_time() << " Microstep: " << get_microstep() <<std::endl;
+        std::cout << id <<":Logical time:" << get_logical_time() << " Microstep: " << get_microstep() <<std::endl;
     =}
 }
 
@@ -34,11 +34,48 @@ reactor Printer {
 
 main reactor(stride: int(10), period: time(1 sec)) {
     c = new Counter(stride=stride, period=period);
-    a1 = new Adder(value=1, delay=0);
-    a2 = new Adder(value=2, delay=1);
+    a1 = new Adder(value=1, delay=0, id=0);
+    a2 = new Adder(value=2, delay=2, id=1);
     p = new Printer();
     c.out -> a1.in;
     c.out -> a2.in;
     a1.out -> p.in1;
     a2.out -> p.in2;
 }
+
+
+/// result memo
+/*
+0:Physical time1: 2024-01-26 09:01:39.000496667
+0:Physical time2: 2024-01-26 09:01:39.000699977
+
+1:Physical time1: 2024-01-26 09:01:39.000506647
+1:Physical time2: 2024-01-26 09:01:41.000715035 // 2sec delay in Physical
+
+0:Logical time:2024-01-26 09:01:37.999132128 Microstep: 0 // Logically, simultaneous
+1:Logical time:2024-01-26 09:01:37.999132128 Microstep: 0 // 
+[INFO]  Result: 11
+[INFO]  Result: 12
+
+// Reactors triggered at the same time run concurrently and end at the same time. Logically!!
+// Physically, the Printer reactor waits for all input reactor to be finishied.
+*/
+
+// another experiment
+// comment out //L43 a2.out -> p.in2;
+/*
+1:Physical time1: 2024-01-26 09:03:41.903930342
+1:Physical time2: 2024-01-26 09:03:43.904260343 // 2sec delay in Physical
+
+0:Physical time1: 2024-01-26 09:03:41.903935672
+0:Physical time2: 2024-01-26 09:03:41.904265032
+
+0:Logical time:2024-01-26 09:03:41.902991652 Microstep: 0
+1:Logical time:2024-01-26 09:03:41.902991652 Microstep: 0
+
+[INFO]  Result: 1
+[INFO]  Result: 0　// In this case, the printer still waits!!
+
+// For the logical time to progress, all reactors need to be processed
+
+*/

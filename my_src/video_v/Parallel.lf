@@ -1,15 +1,16 @@
 target C {
     timeout: 2 sec,
-    workers: 1 // change to 4 to see speed up
+    tracing: true,
+    workers: 2 // change to 4 to see speed up
 }
 
 reactor Source {
     timer t(0, 200 msec);
     output out:int;
-    state s:int=0;
+    state inc:int=0;
     reaction(t) -> out {=
-        SET(out, self->s);
-        self->s++;
+        SET(out, self->inc);
+        self->inc++;
     =}
 }
 
@@ -17,13 +18,16 @@ reactor TakeTime {
     input in:int;
     output out:int;
     reaction(in) -> out {=
+        // sleep 200 msec 
         struct timespec sleep_time = { (time_t) 0, (long)200000000 };
         struct timespec remaining_time;
-        nanosleep(&sleep_time, &remaining_time); // sleep function
+        nanosleep(&sleep_time, &remaining_time); 
+        // additionally, consuming time 
         int offset = 0;
         for (int i=0; i < 100000000; i++) {
             offset++;
         }
+        // offset is 100000000. finally
         SET(out,in->value + offset);
     =}
 
