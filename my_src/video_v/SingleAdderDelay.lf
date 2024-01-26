@@ -5,6 +5,7 @@ reactor Counter(stride: int(1), period: time(1 sec)) {
     timer t(0,period);
     output out: int;
     reaction(t) -> out {=
+        std::cout << "C:Logical time:" << get_logical_time() << " Microstep: " << get_microstep() <<std::endl;
         out.set(count);
         count += stride;
     =}
@@ -14,21 +15,22 @@ reactor Adder(value: int(1),delay: int(0), id: int(0)) {
     input in: int;
     output out: int;
     reaction (in) -> out {=
+        std::cout << id <<":Logical time1:" << get_logical_time() << " Microstep: " << get_microstep() <<std::endl;
         std::cout << id <<":Physical time1: " << get_physical_time() <<  std::endl;
         sleep(delay); 
-        std::cout << id << ":Physical time2: " << get_physical_time() <<  std::endl;
         out.set(*in.get() + value);
-        std::cout << id <<":Logical time:" << get_logical_time() << " Microstep: " << get_microstep() <<std::endl;
+        std::cout << id << ":Physical time2: " << get_physical_time() <<  std::endl;
+        std::cout << id <<":Logical time2:" << get_logical_time() << " Microstep: " << get_microstep() <<std::endl;
     =}
 }
 
 reactor Printer {
     input in1:int;
     input in2:int;
-    reaction(in1, in2) {=
+    reaction(in1, in2) {=        
+        std::cout << "P:Logical time:" << get_logical_time() << " Microstep: " << get_microstep() <<std::endl;
         reactor::log::Info() << "Result: " << *in1.get();
         reactor::log::Info() << "Result: " << *in2.get();
-
     =}
 }
 
