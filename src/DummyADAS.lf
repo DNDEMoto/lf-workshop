@@ -1,0 +1,91 @@
+/**
+ * ADAS Sensor fusion mock up.
+ * @author Ravi Akella, DENSO
+ * @author Marten Lohstroh, UC Berkeley
+ */
+ target C {
+    timeout: 1 sec,
+    //Several other target properties exist
+  }
+  
+  preamble {=
+    #include "platform.h"
+    #include <stdlib.h>
+  =}
+  
+  reactor Sensor(period: time = 100 ms) {
+    timer t(0, period)
+    output out: int
+    state count: int
+  
+    reaction(t) -> out {=
+      lf_set(out, self->count);
+      self->count++;
+    =}
+  }
+  
+  reactor Processor(processingTime: time = 10 ms) {
+    input[1] inp: int
+    output out: int
+    logical action a(processingTime): int
+    state delay: time = processingTime
+  
+    reaction(inp) -> a {=
+        lf_sleep(self->processingTime * 10);
+
+        printf(">>> sensor data: %d\n", inp[0]->value);
+
+        lf_schedule_int(a, 0, inp[0]->value);
+        printf("-----------------\n\n");
+  
+        interval_t logical_elapsed = lf_time_logical_elapsed();
+        interval_t diff_us = (lf_time_physical_elapsed() - logical_elapsed) / 1000;
+        printf("(processor lagging physical time by %lld us at %lld ms)\n", diff_us, logical_elapsed / 1000000);
+    =}
+  
+    reaction(a) -> out {=
+      interval_t logical_elapsed = lf_time_logical_elapsed();
+      interval_t diff_us = (lf_time_physical_elapsed() - logical_elapsed) / 1000;
+      printf("(processor lagging physical time by %lld us at %lld ms <<after action>>)\n", diff_us, logical_elapsed / 1000000);
+      lf_set(out, a->value);
+    =}
+  }
+  
+  reactor Brakes extends Actuator {
+  }
+  
+  reactor Display extends Actuator {
+  }
+  
+  reactor Actuator(name: char* = "actuator", maxLag: time = 150 ms) {
+    input inp: int
+    state misses: int = 0
+  
+    reaction(inp) {=
+      interval_t logical_elapsed = lf_time_logical_elapsed();
+      interval_t diff_us = (lf_time_physical_elapsed() - logical_elapsed) / 1000;
+      printf("(%s lagging physical time by %lld us at %lld ms)\n", self->name, diff_us, logical_elapsed / 1000000);
+    =} deadline(maxLag) {=
+      self->misses++;
+      printf("---- DEADLINE MISS ----\n");
+      interval_t logical_elapsed = lf_time_logical_elapsed();
+      interval_t diff_us = (lf_time_physical_elapsed() - logical_elapsed) / 1000;
+      printf("(%s lagging physical time by %lld us at %lld ms)\n", self->name, diff_us, logical_elapsed / 1000000);
+      printf("---- DEADLINE MISS ----\n");
+    =}
+  
+    reaction(shutdown) {=
+      printf("---- Deadline misses at %s: %d\n", self->name, self->misses);
+    =}
+  }
+  
+  main reactor(processingTime: time = 30 ms) {
+    video = new Sensor(period = 40 ms)
+  
+    processor = new Processor(processingTime=processingTime)
+    brakes = new Brakes(name="brakes", maxLag = 10 ms)
+  
+    video.out -> processor.inp
+  
+    processor.out -> brakes.inp
+  }
