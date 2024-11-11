@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -yq \
 RUN mkdir .scripts
 COPY .scripts .scripts
 
-RUN bash .scripts/setup.bash
+RUN bash .scripts/setup.bash stable
 ENV PATH="$PATH:/lingua-franca/bin"
 
 # To install RTI at /usr/local/bin/RTI
