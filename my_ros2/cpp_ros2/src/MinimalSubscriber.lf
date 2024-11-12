@@ -35,6 +35,13 @@ main reactor {
   =}
 
   reaction(message) {=
+    auto lt_ns = get_elapsed_logical_time();
+    auto lt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(lt_ns).count();
+    auto pt_ns = get_elapsed_physical_time();
+    auto pt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(pt_ns).count();
+    // 出力
+    std::cout << "SUB: LT: " << lt_ms << " ms, PT: " << pt_ms << " ms" << std::endl;
+              
     reactor::log::Info() << "I heard: " << *message.get();
   =}
 }

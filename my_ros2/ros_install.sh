@@ -24,6 +24,7 @@ sudo apt upgrade
 
 sudo apt install ros-foxy-ros-base python3-argcomplete
 
+## 毎ターミナルで実行
 source /opt/ros/foxy/setup.bash
 
 # 初期化
