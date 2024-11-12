@@ -1,0 +1,82 @@
+/**
+ * The provided Lingua Franca (LF) program is designed to publish messages onto a ROS2 topic at a
+ * regular interval. Specifically, it publishes a 'std_msgs/msg/String' message on the topic named
+ * "topic" every 500 milliseconds. The message contains a string "Hello, world!" followed by a
+ * counter value that increments with each published message. This LF program illustrates a simple
+ * example of a ROS2 publisher, making use of LF's precise timing semantics to ensure regular
+ * message publication.
+ */
+target Cpp {
+  ros2: true,
+  ros2-dependencies: ["std_msgs"]
+}
+
+public preamble {=
+  #include "rclcpp/rclcpp.hpp"
+  #include "std_msgs/msg/string.hpp"
+=}
+
+reactor Publisher {
+  private preamble {=
+    // FIXME: forward declaration to make the node visible
+    extern rclcpp::Node* lf_node;
+  =}
+  state publisher: {= rclcpp::Publisher<std_msgs::msg::String>::SharedPtr =}
+  state count: unsigned(0)
+  timer t(0, 500 ms)
+
+  reaction(startup) {=
+    publisher = lf_node->create_publisher<std_msgs::msg::String>("topic", 10);
+  =}
+
+  reaction(t) {=
+    auto lt_ns = get_elapsed_logical_time();
+        auto lt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(lt_ns).count();
+        auto pt_ns = get_elapsed_physical_time();
+        auto pt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(pt_ns).count();
+
+        // 出力
+        std::cout << "PUB: LT: " << lt_ms << " ms, PT: " << pt_ms << " ms" << std::endl;
+
+        auto message = std_msgs::msg::String();
+        message.data = "Hello, world! " + std::to_string(count++);
+        reactor::log::Info() << "Publishing: " << message.data;
+        publisher->publish(message);
+  =}
+}
+
+reactor Subscriber {
+  private preamble {=
+    // FIXME: forward declaration to make the node visible
+    extern rclcpp::Node* lf_node;
+  =}
+
+  state subscription: {= rclcpp::Subscription<std_msgs::msg::String>::SharedPtr =}
+  state count: unsigned(0)
+
+  physical action message: std::string
+
+  reaction(startup) -> message {=
+    // 第3引数はlambda関数
+    subscription = lf_node->create_subscription<std_msgs::msg::String>(
+      "topic", 10, [&message](const std_msgs::msg::String::SharedPtr msg) { message.schedule(msg->data); } );
+    // FIXME: Why can't we use a reference type in the lambda argument?
+    // const std_msgs::msg::String::SharedPtr& msg
+  =}
+
+  reaction(message) {=
+    auto lt_ns = get_elapsed_logical_time();
+    auto lt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(lt_ns).count();
+    auto pt_ns = get_elapsed_physical_time();
+    auto pt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(pt_ns).count();
+    // 出力
+    std::cout << "SUB: LT: " << lt_ms << " ms, PT: " << pt_ms << " ms" << std::endl;
+
+    reactor::log::Info() << "I heard: " << *message.get();
+  =}
+}
+
+main reactor {
+    p = new Publisher();
+    s = new Subscriber();
+}
