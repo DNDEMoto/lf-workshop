@@ -28,6 +28,7 @@ main reactor {
   physical action message: std::string
 
   reaction(startup) -> message {=
+    // 第3引数はlambda関数
     subscription = lf_node->create_subscription<std_msgs::msg::String>(
       "topic", 10, [&message](const std_msgs::msg::String::SharedPtr msg) { message.schedule(msg->data); } );
     // FIXME: Why can't we use a reference type in the lambda argument?
