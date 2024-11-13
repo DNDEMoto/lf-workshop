@@ -16,13 +16,16 @@ public preamble {=
   #include "std_msgs/msg/string.hpp"
 =}
 
-reactor Publisher {
+reactor ROSPublisher {
   private preamble {=
     // FIXME: forward declaration to make the node visible
     extern rclcpp::Node* lf_node;
   =}
   state publisher: {= rclcpp::Publisher<std_msgs::msg::String>::SharedPtr =}
   state count: unsigned(0)
+  input ego_cmd: auto
+  input ego_eb: auto
+
   timer t(0, 500 ms)
 
   reaction(startup) {=
@@ -45,7 +48,7 @@ reactor Publisher {
   =}
 }
 
-reactor Subscriber {
+reactor ROSSubscriber {
   private preamble {=
     // FIXME: forward declaration to make the node visible
     extern rclcpp::Node* lf_node;
@@ -53,6 +56,9 @@ reactor Subscriber {
 
   state subscription: {= rclcpp::Subscription<std_msgs::msg::String>::SharedPtr =}
   state count: unsigned(0)
+  output ego_pose: auto
+  output ego_twist: auto
+  output ego_objects: auto
 
   physical action message: std::string
 
@@ -64,7 +70,7 @@ reactor Subscriber {
     // const std_msgs::msg::String::SharedPtr& msg
   =}
 
-  reaction(message) {=
+  reaction(message) -> message {=
     auto lt_ns = get_elapsed_logical_time();
     auto lt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(lt_ns).count();
     auto pt_ns = get_elapsed_physical_time();
@@ -73,10 +79,36 @@ reactor Subscriber {
     std::cout << "SUB: LT: " << lt_ms << " ms, PT: " << pt_ms << " ms" << std::endl;
 
     reactor::log::Info() << "I heard: " << *message.get();
-  =} 
+  =}
 }
 
-main reactor {
-    p = new Publisher();
-    s = new Subscriber();
+reactor PathFollower {
+    input ego_pose: auto
+    input ego_twist: auto
+    output ego_cmd: auto
+
+    reaction(ego_pose,ego_twist) -> ego_cmd {=
+        // Simulink モデル呼出し、別スレ不要、ブロッキングでOK
+    =}
+}
+
+reactor EmergencyBrake {
+    input ego_objects: auto
+    output ego_eb: auto
+    
+    reaction(ego_objects) -> ego_eb {=
+        // Simulink モデル呼出し、別スレ不要、ブロッキングでOK
+    =}
+}
+
+federated reactor {
+  p = new ROSPublisher()
+  s = new ROSSubscriber()
+  f = new PathFollower()
+  e = new EmergencyBrake()
+  s.ego_pose -> f.ego_pose serializer "ros2";
+  s.ego_twist -> f.ego_twist
+  s.ego_objects -> e.ego_objects
+  f.ego_cmd -> p.ego_cmd
+  e.ego_eb -> p.ego_eb
 }
